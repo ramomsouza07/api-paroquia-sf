@@ -187,7 +187,7 @@ export async function articleRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       await prisma.artigo.delete({ where: { id: request.params.id } });
-      return reply.code(204).send();
+      return reply.code(204).send(null);
     }
   );
 }
