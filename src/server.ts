@@ -15,6 +15,7 @@ import { authPlugin } from './plugins/auth.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { articleRoutes } from './routes/articles.routes.js';
 import { uploadRoutes } from './routes/upload.routes.js';
+import { pingRoutes } from './routes/ping.routes.js';
 
 const app = Fastify({
   logger: true,
@@ -50,6 +51,7 @@ async function bootstrap() {
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(articleRoutes, { prefix: '/api/artigos' });
   await app.register(uploadRoutes, { prefix: '/api/upload' });
+  await app.register(pingRoutes, { prefix: '/api/ping' });
 
   try {
     await app.listen({ port: env.PORT, host: '0.0.0.0' });
