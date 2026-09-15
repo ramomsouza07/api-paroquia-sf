@@ -15,15 +15,34 @@ const envSchema = z.object({
   SUPABASE_STORAGE_BUCKET: z.string().default('artigos-imagens'),
 });
 
-const resultado = envSchema.safeParse(process.env);
+type EnvType = z.infer<typeof envSchema>;
+let parsedEnv: EnvType | null = null;
+let envError: string | null = null;
 
-if (!resultado.success) {
-  const formatado = Object.entries(resultado.error.flatten().fieldErrors)
-    .map(([campo, erros]) => `• ${campo}: ${erros?.join(', ')}`)
-    .join('\n');
+export function getEnv(): EnvType {
+  if (parsedEnv) return parsedEnv;
+  if (envError) throw new Error(envError);
 
-  console.error('❌ Variáveis de ambiente inválidas ou ausentes na Vercel:\n' + formatado);
-  throw new Error(`Configuração de ambiente incompleta na Vercel:\n${formatado}`);
+  const resultado = envSchema.safeParse(process.env);
+
+  if (!resultado.success) {
+    const formatado = Object.entries(resultado.error.flatten().fieldErrors)
+      .map(([campo, erros]) => `• ${campo}: ${erros?.join(', ')}`)
+      .join('\n');
+
+    envError = `Configuração de ambiente incompleta na Vercel:\n${formatado}\n\n-> Cadastre essas variáveis no painel da Vercel (Project Settings > Environment Variables) e faça um Redeploy.`;
+    console.error('❌ ' + envError);
+    throw new Error(envError);
+  }
+
+  parsedEnv = resultado.data;
+  return parsedEnv;
 }
 
-export const env = resultado.data;
+// Proxy para evitar erro no carregamento do módulo: a validação só ocorre quando uma propriedade é acessada
+export const env = new Proxy({} as EnvType, {
+  get(_target, prop: string) {
+    const valid = getEnv();
+    return valid[prop as keyof EnvType];
+  },
+});

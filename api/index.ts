@@ -10,7 +10,10 @@ async function getApp(): Promise<FastifyInstance> {
       const app = await buildApp();
       await app.ready();
       return app;
-    })();
+    })().catch((err) => {
+      appPromise = null;
+      throw err;
+    });
   }
   return appPromise;
 }
