@@ -9,7 +9,6 @@ import {
 } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
-import { env } from './config/env.js';
 import { authPlugin } from './plugins/auth.js';
 
 import { authRoutes } from './routes/auth.routes.js';
@@ -27,25 +26,12 @@ export async function buildApp() {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
+  // Habilita CORS completo refletindo o Origin da requisição e aceitando credenciais e preflight
   await app.register(cors, {
-    origin: (origin, cb) => {
-      // Permite requisições sem origin (ex: mobile, curl, Postman)
-      if (!origin || env.FRONTEND_URL === '*' || origin === env.FRONTEND_URL) {
-        cb(null, true);
-        return;
-      }
-
-      // Permite múltiplos domínios caso FRONTEND_URL tenha vírgulas
-      const allowed = env.FRONTEND_URL.split(',').map((item) => item.trim());
-      if (allowed.includes(origin) || env.NODE_ENV === 'development') {
-        cb(null, true);
-        return;
-      }
-
-      // Não lança erro para evitar status 500 no preflight (OPTIONS)
-      cb(null, false);
-    },
+    origin: true,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   });
 
   await app.register(multipart);
@@ -59,7 +45,7 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
-  // Rota de verificação de saúde da API
+  // Rotas de verificação de saúde da API
   app.get(
     '/api/saude',
     {
@@ -72,6 +58,8 @@ export async function buildApp() {
     async () => ({ status: 'ok' as const })
   );
 
+  app.get('/saude', async () => ({ status: 'ok' as const }));
+
   // Rota /api para facilidade de teste
   app.get('/api', async () => ({
     nome: 'Paróquia Notícias API',
@@ -79,10 +67,18 @@ export async function buildApp() {
     saude: '/api/saude',
   }));
 
+  // Registra as rotas com prefixo /api (padrão)
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(articleRoutes, { prefix: '/api/artigos' });
   await app.register(uploadRoutes, { prefix: '/api/upload' });
   await app.register(pingRoutes, { prefix: '/api/ping' });
+
+  // Também registra as rotas SEM prefixo /api para compatibilidade total
+  // caso o frontend tenha configurado VITE_API_URL sem o "/api" no final
+  await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(articleRoutes, { prefix: '/artigos' });
+  await app.register(uploadRoutes, { prefix: '/upload' });
+  await app.register(pingRoutes, { prefix: '/ping' });
 
   return app;
 }
