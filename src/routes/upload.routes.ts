@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import sharp from 'sharp';
 import { z } from 'zod';
 
 import { env } from '../config/env.js';
@@ -80,6 +79,7 @@ export async function uploadRoutes(app: FastifyInstance) {
         extensaoFinal = 'gif';
       } else {
         try {
+          const { default: sharp } = await import('sharp');
           bufferFinal = await sharp(bufferOriginal)
             .resize({ width: LARGURA_MAXIMA_PX, withoutEnlargement: true })
             .webp({ quality: QUALIDADE_WEBP })

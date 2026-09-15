@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { FastifyInstance } from 'fastify';
+import { buildApp } from '../src/app.js';
 
 let appPromise: Promise<FastifyInstance> | null = null;
 
 async function getApp(): Promise<FastifyInstance> {
   if (!appPromise) {
     appPromise = (async () => {
-      const { buildApp } = await import('../src/app.js');
       const app = await buildApp();
       await app.ready();
       return app;
@@ -37,6 +37,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       JSON.stringify({
         erro: 'Erro interno na inicialização da API na Vercel',
         mensagem: err instanceof Error ? err.message : 'Erro desconhecido',
+        stack: err instanceof Error ? err.stack : undefined,
       })
     );
   }
